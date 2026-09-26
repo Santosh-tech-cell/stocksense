@@ -1,5 +1,8 @@
 inventory.db
+inventory.db-wal
+inventory.db-shm
 .streamlit/config.toml
 __pycache__/
 *.pyc
 .env
+venv/

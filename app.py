@@ -10,8 +10,6 @@ import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Overwrite Streamlit config so native widgets match a dark base (all themes except Solar).
-# Solar is handled by aggressive CSS overrides in the theme block.
 os.makedirs(".streamlit", exist_ok=True)
 with open(".streamlit/config.toml", "w") as _f:
     _f.write(
@@ -30,7 +28,6 @@ try:
 except ImportError:
     HAS_OPTION_MENU = False
 
-import os
 DB_NAME = os.environ.get("DB_PATH", "inventory.db")
 CATEGORIES = ["Raw Materials", "Finished Goods", "Office Supplies", "Packaging", "Other"]
 UOM_OPTIONS = ["pcs", "kg", "g", "litre", "ml", "box", "meter", "pack"]
@@ -47,7 +44,7 @@ THEMES = {
         "bg": "radial-gradient(ellipse 80% 60% at 10% 0%, #2a1749 0%, #150b28 40%, #08060f 100%)",
         "sidebar": "#0e0a1c",
         "accent": "#8b6bff", "accent2": "#22d3ee",
-        "text": "#f5f7ff", "muted": "#9aa3c0",
+        "text": "#f5f7ff", "muted": "#b0b8d0",
         "border": "rgba(139,107,255,0.22)", "glass": "rgba(255,255,255,0.045)",
         "light": False,
     },
@@ -55,7 +52,7 @@ THEMES = {
         "bg": "radial-gradient(ellipse 80% 60% at 20% 0%, #0d4a4a 0%, #072025 45%, #03080a 100%)",
         "sidebar": "#050d10",
         "accent": "#2dd4bf", "accent2": "#4ade80",
-        "text": "#eafffb", "muted": "#7fb3ad",
+        "text": "#eafffb", "muted": "#95c9c2",
         "border": "rgba(45,212,191,0.22)", "glass": "rgba(255,255,255,0.045)",
         "light": False,
     },
@@ -63,7 +60,7 @@ THEMES = {
         "bg": "radial-gradient(ellipse 80% 60% at 15% 0%, #3b120c 0%, #1c0806 50%, #0a0503 100%)",
         "sidebar": "#150806",
         "accent": "#fb7185", "accent2": "#fbbf24",
-        "text": "#fff3ee", "muted": "#c9a89a",
+        "text": "#fff3ee", "muted": "#d8bcae",
         "border": "rgba(251,113,133,0.24)", "glass": "rgba(255,255,255,0.045)",
         "light": False,
     },
@@ -71,7 +68,7 @@ THEMES = {
         "bg": "radial-gradient(ellipse 70% 50% at 50% -10%, #1e1e42 0%, #0d0d1f 55%, #050510 100%)",
         "sidebar": "#08080f",
         "accent": "#a78bfa", "accent2": "#60a5fa",
-        "text": "#f0f0ff", "muted": "#8a8aad",
+        "text": "#f0f0ff", "muted": "#a2a2c4",
         "border": "rgba(167,139,250,0.24)", "glass": "rgba(255,255,255,0.045)",
         "light": False,
     },
@@ -79,7 +76,7 @@ THEMES = {
         "bg": "linear-gradient(135deg, #f6f7fc 0%, #eef1f8 100%)",
         "sidebar": "#ffffff",
         "accent": "#6d4aff", "accent2": "#0ea5e9",
-        "text": "#0f172a", "muted": "#5b6276",
+        "text": "#0f172a", "muted": "#3d4455",
         "border": "rgba(109,74,255,0.18)", "glass": "#ffffff",
         "light": True,
     },
@@ -97,6 +94,7 @@ def _init_prefs():
         st.session_state.radius = "Round"
     st.session_state.setdefault("cursor_aura", True)
     st.session_state.setdefault("animations", True)
+    st.session_state.setdefault("is_demo", False)
 
 
 _init_prefs()
@@ -224,13 +222,8 @@ CSS_TEMPLATE = """
     --primary-color: __ACCENT__ !important;
 }
 
-/* ===== Streamlit chrome: keep functional, blend with theme ===== */
-[data-testid="stHeader"] {
-    background: transparent !important;
-}
-[data-testid="stToolbar"] {
-    background: transparent !important;
-}
+[data-testid="stHeader"] { background: transparent !important; }
+[data-testid="stToolbar"] { background: transparent !important; }
 [data-testid="stDecoration"] { display: none !important; }
 
 [data-testid="stToolbar"] button,
@@ -256,7 +249,6 @@ CSS_TEMPLATE = """
 }
 [data-testid="stMainMenu"] svg { fill: currentColor !important; }
 
-/* Sidebar toggle — always visible, themed */
 [data-testid="stSidebarCollapseButton"],
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="collapsedControl"] {
@@ -283,7 +275,6 @@ CSS_TEMPLATE = """
     fill: currentColor !important;
 }
 
-/* ===== Base ===== */
 html, body, [class*="css"], .stApp {
     font-family: 'Inter', system-ui, sans-serif;
     color: var(--text) !important;
@@ -326,7 +317,6 @@ code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
     66% { transform: translate(-30px, 30px) scale(0.94); }
 }
 
-/* ===== Sidebar ===== */
 section[data-testid="stSidebar"],
 section[data-testid="stSidebar"] > div,
 section[data-testid="stSidebar"] > div > div,
@@ -402,7 +392,6 @@ section[data-testid="stSidebar"] * { color: var(--text); }
 .nav-link-selected svg,
 .nav-link-selected i { color: #ffffff !important; opacity: 1 !important; }
 
-/* ===== Titles ===== */
 .app-title {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 2.15rem; font-weight: 700; letter-spacing: -0.035em;
@@ -434,7 +423,6 @@ h3, h5 { font-family: 'Space Grotesk', sans-serif !important;
     color: var(--muted) !important;
 }
 
-/* ===== Cards ===== */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     border-radius: var(--radius) !important;
     border: 1px solid var(--border) !important;
@@ -448,7 +436,6 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover {
     transform: translateY(-2px);
 }
 
-/* ===== KPI ===== */
 .kpi-card {
     border-radius: var(--radius); padding: 18px 20px 16px; height: 100%;
     background: var(--surface-2);
@@ -493,7 +480,6 @@ div[data-testid="stVerticalBlockBorderWrapper"]:hover {
     text-transform: uppercase; font-weight: 600; }
 @keyframes riseIn { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform: none; } }
 
-/* ===== Buttons ===== */
 button, .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button,
 button[data-testid="stBaseButton-primary"],
 button[data-testid="stBaseButton-secondary"],
@@ -535,7 +521,6 @@ button[kind="primary"] p, button[kind="primaryFormSubmit"] p,
 button[data-testid="stBaseButton-primary"] p,
 button[data-testid="stBaseButton-primaryFormSubmit"] p { color: #ffffff !important; }
 
-/* ===== Inputs ===== */
 .stTextInput input, .stNumberInput input, .stTextArea textarea,
 .stSelectbox div[data-baseweb="select"] > div,
 .stMultiSelect div[data-baseweb="select"] > div,
@@ -560,7 +545,6 @@ label, .stTextInput label, .stSelectbox label, .stNumberInput label,
 div[data-baseweb="select"] span, div[data-baseweb="select"] div[role="button"] {
     color: var(--text) !important;
 }
-
 div[data-baseweb="popover"], div[data-baseweb="popover"] > div,
 div[data-baseweb="popover"] ul, div[data-baseweb="popover"] li,
 div[role="listbox"], div[role="option"] {
@@ -573,7 +557,6 @@ div[role="option"]:hover, div[data-baseweb="popover"] li:hover {
     background: __NAV_HOVER__ !important;
 }
 
-/* ===== Tabs ===== */
 .stTabs [data-baseweb="tab-list"] {
     gap: 6px !important;
     border-bottom: 1px solid var(--border) !important;
@@ -604,7 +587,6 @@ div[role="option"]:hover, div[data-baseweb="popover"] li:hover {
 }
 .stTabs [data-baseweb="tab-border"] { background: transparent !important; }
 
-/* ===== Expander ===== */
 [data-testid="stExpander"], .streamlit-expander, details {
     background: var(--surface-2) !important;
     border: 1px solid var(--border) !important;
@@ -637,7 +619,6 @@ details > summary svg {
     background: transparent !important;
 }
 
-/* ===== Dataframe / Table ===== */
 [data-testid="stDataFrame"],
 [data-testid="stDataFrame"] > div,
 [data-testid="stDataFrame"] > div > div,
@@ -652,12 +633,9 @@ details > summary svg {
     color: var(--text) !important;
     border-color: var(--border) !important;
 }
-[data-testid="stDataFrame"] canvas {
-    background: var(--input-bg) !important;
-}
+[data-testid="stDataFrame"] canvas { background: var(--input-bg) !important; }
 [data-testid="stTable"] th { color: var(--text) !important; font-weight: 600 !important; }
 
-/* ===== Alerts ===== */
 .stAlert, [data-testid="stAlert"] {
     border-radius: var(--radius) !important;
     border: 1px solid var(--border) !important;
@@ -667,7 +645,6 @@ details > summary svg {
     color: var(--text) !important;
 }
 
-/* ===== Badges ===== */
 .badge {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 4px 11px; border-radius: 999px;
@@ -680,9 +657,8 @@ details > summary svg {
 .badge-ready { background: rgba(192,132,252,0.16); color:#c084fc; border:1px solid rgba(192,132,252,.45); }
 .badge-cancelled { background: rgba(248,113,113,0.16); color:#f87171; border:1px solid rgba(248,113,113,.45); }
 
-/* ===== Pills ===== */
 .brand-row { display: flex; align-items: center; gap: 14px; margin-bottom: 2px; }
-.pill-row { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.pill-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
 .pill {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 9px 14px; border-radius: 999px;
@@ -694,11 +670,10 @@ details > summary svg {
     box-shadow: 0 10px 24px -10px var(--accent); }
 .pill svg { color: var(--accent); }
 .login-hero { padding: 6px 0; }
-.login-hero h1 { font-size: 2.6rem; line-height: 1.05; margin-bottom: 14px;
-    font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.03em; color: var(--text) !important; }
-.login-hero p { color: var(--muted) !important; font-size: 1.02rem; max-width: 460px; line-height: 1.55; }
+.login-hero h1 { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.035em;
+    color: var(--text) !important; margin-bottom: 14px; }
+.login-hero p { color: var(--muted) !important; font-size: 1rem; line-height: 1.55; }
 
-/* ===== Toast ===== */
 .toast {
     position: fixed; bottom: 26px; right: 26px; z-index: 9999;
     padding: 14px 22px; border-radius: 14px;
@@ -709,7 +684,6 @@ details > summary svg {
 }
 @keyframes toastIn { from { opacity:0; transform: translateY(24px) scale(0.95); } to { opacity:1; transform: none; } }
 
-/* ===== Cursor aura ===== */
 #cursor-aura {
     position: fixed; top: 0; left: 0;
     width: 420px; height: 420px; border-radius: 50%;
@@ -821,105 +795,36 @@ def kpi_card(icon_name, label, value, color):
     """)
 
 
-def styled_stock_table(view_df, key=None):
-    if view_df.empty:
-        st.info("No matching stock records.")
-        return
-    display_df = view_df.copy()
-    display_df["Category"] = display_df["category"].apply(
-        lambda c: f"{CATEGORY_ICONS.get(c,'🔹')} {c or ''}")
-    max_qty = max(int(display_df["quantity"].max()), 1)
-    cols = ["name", "sku", "Category", "warehouse", "quantity", "reorder_point"]
-    if "uom" in display_df.columns:
-        cols.insert(4, "uom")
-    if "Status" in display_df.columns:
-        cols.append("Status")
-    st.dataframe(
-        display_df[cols], use_container_width=True, hide_index=True, key=key,
-        column_config={
-            "name": st.column_config.TextColumn("Product"),
-            "sku": st.column_config.TextColumn("SKU"),
-            "uom": st.column_config.TextColumn("UOM"),
-            "warehouse": st.column_config.TextColumn("Warehouse"),
-            "quantity": st.column_config.ProgressColumn(
-                "Stock Level", min_value=0, max_value=max_qty, format="%d"),
-            "reorder_point": st.column_config.NumberColumn("Reorder At"),
-        },
-    )
-
-
-# ==================================================================================
-# CHARTS
-# ==================================================================================
-def chart_donut(df, val_col, name_col, center_label, center_value, height=340):
-    colors = [T["accent"], T["accent2"], "#fbbf24", "#fb7185", "#4ade80", "#a78bfa", "#60a5fa"]
-    fig = go.Figure(go.Pie(
-        labels=df[name_col], values=df[val_col], hole=0.74,
-        marker=dict(colors=colors[:len(df)],
-                    line=dict(color="rgba(0,0,0,0)", width=2)),
-        textinfo="none", sort=False, direction="clockwise",
-        hovertemplate="<b>%{label}</b><br>%{value:,} units • %{percent}<extra></extra>",
-    ))
-    fig.update_layout(
-        showlegend=True,
-        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.02,
-                    font=dict(color=T["muted"], size=12, family="Inter"), bgcolor="rgba(0,0,0,0)"),
-        annotations=[
-            dict(text=f"<b>{center_value:,}</b>", x=0.5, y=0.53, showarrow=False,
-                 font=dict(color=T["text"], family="Space Grotesk", size=30)),
-            dict(text=center_label.upper(), x=0.5, y=0.42, showarrow=False,
-                 font=dict(color=T["muted"], size=10, family="Inter")),
-        ],
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=6, r=6, t=6, b=6), height=height,
-    )
-    return fig
-
-
-def chart_hbar(df, label_col, value_col, height=340):
-    df = df.sort_values(value_col, ascending=True).tail(8)
-    fig = go.Figure(go.Bar(
-        x=df[value_col], y=df[label_col], orientation="h",
-        marker=dict(color=df[value_col],
-                    colorscale=[[0, T["accent"]], [1, T["accent2"]]],
-                    line=dict(width=0)),
-        text=[f"{v:,}" for v in df[value_col]], textposition="outside",
-        textfont=dict(color=T["text"], family="Space Grotesk", size=12),
-        hovertemplate="<b>%{y}</b><br>%{x:,} units<extra></extra>",
-    ))
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=6, r=40, t=10, b=10), height=height,
-        xaxis=dict(showgrid=True, gridcolor=T["border"], color=T["muted"],
-                   zeroline=False, tickfont=dict(family="Inter", size=11)),
-        yaxis=dict(showgrid=False, color=T["text"],
-                   tickfont=dict(family="Inter", size=12)),
-        showlegend=False, bargap=0.42,
-    )
-    return fig
-
-
 # ==================================================================================
 # DB
 # ==================================================================================
 def get_conn():
-    return sqlite3.connect(DB_NAME, check_same_thread=False)
+    conn = sqlite3.connect(DB_NAME, check_same_thread=False, timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    return conn
 
 
 def run(query, params=(), fetch=False, many=False):
     conn = get_conn()
-    cur = conn.cursor()
-    if many:
-        cur.executemany(query, params)
-    else:
-        cur.execute(query, params)
-    data = cur.fetchall() if fetch else None
-    cols = [d[0] for d in cur.description] if (fetch and cur.description) else None
-    conn.commit()
-    conn.close()
-    if fetch:
-        return pd.DataFrame(data, columns=cols) if cols else pd.DataFrame()
-    return None
+    try:
+        cur = conn.cursor()
+        if many:
+            cur.executemany(query, params)
+        else:
+            cur.execute(query, params)
+        data = cur.fetchall() if fetch else None
+        cols = [d[0] for d in cur.description] if (fetch and cur.description) else None
+        conn.commit()
+        if fetch:
+            return pd.DataFrame(data, columns=cols) if cols else pd.DataFrame()
+        return None
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def init_db():
@@ -930,60 +835,78 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, otp TEXT NOT NULL,
         created_at TEXT NOT NULL)""")
     run("""CREATE TABLE IF NOT EXISTS warehouses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, location TEXT)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        name TEXT NOT NULL, location TEXT)""")
     run("""CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, sku TEXT UNIQUE NOT NULL,
-        category TEXT, uom TEXT, reorder_point INTEGER DEFAULT 5, reorder_qty INTEGER DEFAULT 20)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        name TEXT NOT NULL, sku TEXT NOT NULL,
+        category TEXT, uom TEXT,
+        reorder_point INTEGER DEFAULT 5, reorder_qty INTEGER DEFAULT 20)""")
     run("""CREATE TABLE IF NOT EXISTS stock (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER NOT NULL,
-        warehouse_id INTEGER NOT NULL, quantity INTEGER DEFAULT 0,
-        UNIQUE(product_id, warehouse_id))""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        product_id INTEGER NOT NULL, warehouse_id INTEGER NOT NULL,
+        quantity INTEGER DEFAULT 0)""")
     run("""CREATE TABLE IF NOT EXISTS receipts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, supplier TEXT, warehouse_id INTEGER,
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        supplier TEXT, warehouse_id INTEGER,
         status TEXT DEFAULT 'Draft', created_at TEXT)""")
     run("""CREATE TABLE IF NOT EXISTS receipt_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, receipt_id INTEGER, product_id INTEGER, quantity INTEGER)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        receipt_id INTEGER, product_id INTEGER, quantity INTEGER)""")
     run("""CREATE TABLE IF NOT EXISTS deliveries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, customer TEXT, warehouse_id INTEGER,
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        customer TEXT, warehouse_id INTEGER,
         status TEXT DEFAULT 'Draft', created_at TEXT)""")
     run("""CREATE TABLE IF NOT EXISTS delivery_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, delivery_id INTEGER, product_id INTEGER, quantity INTEGER)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        delivery_id INTEGER, product_id INTEGER, quantity INTEGER)""")
     run("""CREATE TABLE IF NOT EXISTS transfers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER,
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        product_id INTEGER,
         from_warehouse_id INTEGER, to_warehouse_id INTEGER, quantity INTEGER,
         status TEXT DEFAULT 'Draft', created_at TEXT)""")
     run("""CREATE TABLE IF NOT EXISTS adjustments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, warehouse_id INTEGER,
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        product_id INTEGER, warehouse_id INTEGER,
         counted_qty INTEGER, diff INTEGER, status TEXT DEFAULT 'Done', created_at TEXT)""")
     run("""CREATE TABLE IF NOT EXISTS move_history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT, product_id INTEGER,
-        warehouse_id INTEGER, change_qty INTEGER, move_type TEXT, reference TEXT)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id INTEGER,
+        timestamp TEXT, product_id INTEGER,
+        warehouse_id INTEGER, change_qty INTEGER,
+        move_type TEXT, reference TEXT)""")
+
     conn = get_conn()
     cur = conn.cursor()
+    tables = ["warehouses", "products", "stock", "receipts", "receipt_items",
+              "deliveries", "delivery_items", "transfers", "adjustments", "move_history"]
+    for tbl in tables:
+        cur.execute(f"PRAGMA table_info({tbl})")
+        cols = [r[1] for r in cur.fetchall()]
+        if "owner_id" not in cols:
+            cur.execute(f"ALTER TABLE {tbl} ADD COLUMN owner_id INTEGER")
     cur.execute("PRAGMA table_info(adjustments)")
     if "status" not in [r[1] for r in cur.fetchall()]:
         cur.execute("ALTER TABLE adjustments ADD COLUMN status TEXT DEFAULT 'Done'")
     conn.commit()
-    conn.close()
 
-
-def seed_defaults():
-    wh = run("SELECT COUNT(*) c FROM warehouses", fetch=True)
-    if wh.iloc[0]["c"] == 0:
-        run("INSERT INTO warehouses (name, location) VALUES (?,?)", ("Main Warehouse", "HQ"))
-
-
-def migrate_schema():
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("PRAGMA table_info(products)")
-    cols = [r[1] for r in cur.fetchall()]
-    for c, typ, dflt in [("category", "TEXT", None), ("uom", "TEXT", "'pcs'"),
-                          ("reorder_point", "INTEGER", "5"), ("reorder_qty", "INTEGER", "20")]:
-        if c not in cols:
-            cur.execute(f"ALTER TABLE products ADD COLUMN {c} {typ}" + (f" DEFAULT {dflt}" if dflt else ""))
-    conn.commit()
-    conn.close()
+    try:
+        cur.execute("SELECT id FROM users ORDER BY id LIMIT 1")
+        row = cur.fetchone()
+        if row:
+            uid = row[0]
+            for tbl in tables:
+                try:
+                    cur.execute(f"UPDATE {tbl} SET owner_id=? WHERE owner_id IS NULL", (uid,))
+                    conn.commit()
+                except sqlite3.OperationalError:
+                    conn.rollback()
+    except sqlite3.OperationalError:
+        pass
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 # ==================================================================================
@@ -1005,6 +928,16 @@ def create_user(u, p, fn, e):
 def check_login(u, p):
     df = run("SELECT * FROM users WHERE username=?", (u,), fetch=True)
     return (not df.empty) and df.iloc[0]["password_hash"] == hash_pw(p)
+
+
+def current_user_id():
+    if not st.session_state.get("logged_in"):
+        return None
+    u = st.session_state.get("username")
+    if not u:
+        return None
+    df = run("SELECT id FROM users WHERE username=?", (u,), fetch=True)
+    return int(df.iloc[0]["id"]) if not df.empty else None
 
 
 def generate_otp(u):
@@ -1033,45 +966,74 @@ def reset_password(u, p):
 # STOCK HELPERS
 # ==================================================================================
 def get_stock_qty(pid, wid):
-    df = run("SELECT quantity FROM stock WHERE product_id=? AND warehouse_id=?", (pid, wid), fetch=True)
+    uid = current_user_id()
+    if uid is None:
+        return 0
+    df = run("SELECT quantity FROM stock WHERE owner_id=? AND product_id=? AND warehouse_id=?",
+             (uid, pid, wid), fetch=True)
     return int(df.iloc[0]["quantity"]) if not df.empty else 0
 
 
 def adjust_stock(pid, wid, delta):
+    uid = current_user_id()
     cur = get_stock_qty(pid, wid)
     new = cur + delta
-    run("""INSERT INTO stock (product_id, warehouse_id, quantity) VALUES (?,?,?)
-           ON CONFLICT(product_id, warehouse_id) DO UPDATE SET quantity=?""",
-        (pid, wid, new, new))
+    existing = run("SELECT id FROM stock WHERE owner_id=? AND product_id=? AND warehouse_id=?",
+                   (uid, pid, wid), fetch=True)
+    if existing.empty:
+        run("INSERT INTO stock (owner_id, product_id, warehouse_id, quantity) VALUES (?,?,?,?)",
+            (uid, pid, wid, new))
+    else:
+        run("UPDATE stock SET quantity=? WHERE owner_id=? AND product_id=? AND warehouse_id=?",
+            (new, uid, pid, wid))
 
 
 def set_stock_qty(pid, wid, qty):
-    run("""INSERT INTO stock (product_id, warehouse_id, quantity) VALUES (?,?,?)
-           ON CONFLICT(product_id, warehouse_id) DO UPDATE SET quantity=?""",
-        (pid, wid, qty, qty))
+    uid = current_user_id()
+    existing = run("SELECT id FROM stock WHERE owner_id=? AND product_id=? AND warehouse_id=?",
+                   (uid, pid, wid), fetch=True)
+    if existing.empty:
+        run("INSERT INTO stock (owner_id, product_id, warehouse_id, quantity) VALUES (?,?,?,?)",
+            (uid, pid, wid, qty))
+    else:
+        run("UPDATE stock SET quantity=? WHERE owner_id=? AND product_id=? AND warehouse_id=?",
+            (qty, uid, pid, wid))
 
 
 def log_move(pid, wid, delta, mtype, ref):
-    run("""INSERT INTO move_history (timestamp, product_id, warehouse_id, change_qty, move_type, reference)
-           VALUES (?,?,?,?,?,?)""",
-        (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), pid, wid, delta, mtype, ref))
+    uid = current_user_id()
+    run("""INSERT INTO move_history
+           (owner_id, timestamp, product_id, warehouse_id, change_qty, move_type, reference)
+           VALUES (?,?,?,?,?,?,?)""",
+        (uid, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), pid, wid, delta, mtype, ref))
 
 
 def get_products_df():
-    return run("SELECT * FROM products ORDER BY name", fetch=True)
+    uid = current_user_id()
+    if uid is None:
+        return pd.DataFrame()
+    return run("SELECT * FROM products WHERE owner_id=? ORDER BY name", (uid,), fetch=True)
 
 
 def get_warehouses_df():
-    return run("SELECT * FROM warehouses ORDER BY name", fetch=True)
+    uid = current_user_id()
+    if uid is None:
+        return pd.DataFrame()
+    return run("SELECT * FROM warehouses WHERE owner_id=? ORDER BY name", (uid,), fetch=True)
 
 
 def get_stock_df():
+    uid = current_user_id()
+    if uid is None:
+        return pd.DataFrame()
     return run("""
     SELECT p.id as product_id, p.name, p.sku, p.category, p.uom, p.reorder_point,
            w.id as warehouse_id, w.name as warehouse, COALESCE(s.quantity,0) as quantity
-    FROM products p CROSS JOIN warehouses w
-    LEFT JOIN stock s ON s.product_id=p.id AND s.warehouse_id=w.id
-    ORDER BY p.name, w.name""", fetch=True)
+    FROM products p
+    CROSS JOIN warehouses w
+    LEFT JOIN stock s ON s.product_id=p.id AND s.warehouse_id=w.id AND s.owner_id=?
+    WHERE p.owner_id=? AND w.owner_id=?
+    ORDER BY p.name, w.name""", (uid, uid, uid), fetch=True)
 
 
 def product_label_map(df):
@@ -1080,6 +1042,171 @@ def product_label_map(df):
 
 def warehouse_label_map(df):
     return {r["name"]: r["id"] for _, r in df.iterrows()}
+
+
+# ==================================================================================
+# DEMO
+# ==================================================================================
+def seed_demo_data(user_id):
+    now = datetime.now()
+    ts = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    run("INSERT INTO warehouses (owner_id, name, location) VALUES (?,?,?)",
+        (user_id, "Main Warehouse", "Bengaluru HQ"))
+    run("INSERT INTO warehouses (owner_id, name, location) VALUES (?,?,?)",
+        (user_id, "Overflow Storage", "Whitefield"))
+    wh_main = int(run("SELECT id FROM warehouses WHERE owner_id=? AND name='Main Warehouse'",
+                      (user_id,), fetch=True).iloc[0]["id"])
+    wh_over = int(run("SELECT id FROM warehouses WHERE owner_id=? AND name='Overflow Storage'",
+                      (user_id,), fetch=True).iloc[0]["id"])
+
+    demo_products = [
+        ("Steel Rods 12mm", "STL-ROD-12", "Raw Materials", "kg", 100, 500, 850),
+        ("Aluminium Sheets", "ALU-SHT", "Raw Materials", "kg", 50, 200, 320),
+        ("Wooden Pallet", "WOD-PLT", "Packaging", "pcs", 20, 100, 145),
+        ("Shipping Carton", "SHIP-CTN", "Packaging", "pcs", 200, 1000, 2400),
+        ("Office Chair", "OFF-CHR", "Office Supplies", "pcs", 5, 20, 12),
+        ("Steel Frame Kit", "STL-FRM-KIT", "Finished Goods", "box", 15, 60, 38),
+        ("Insulated Panel", "INS-PNL", "Finished Goods", "pcs", 30, 120, 22),
+        ("A4 Paper Ream", "OFF-PPR-A4", "Office Supplies", "pack", 40, 200, 95),
+    ]
+    for name, sku, cat, uom, rp, rq, init_qty in demo_products:
+        run("""INSERT INTO products (owner_id, name, sku, category, uom, reorder_point, reorder_qty)
+               VALUES (?,?,?,?,?,?,?)""", (user_id, name, sku, cat, uom, rp, rq))
+        pid = int(run("SELECT id FROM products WHERE owner_id=? AND sku=?",
+                      (user_id, sku), fetch=True).iloc[0]["id"])
+        half = init_qty // 2
+        run("INSERT INTO stock (owner_id, product_id, warehouse_id, quantity) VALUES (?,?,?,?)",
+            (user_id, pid, wh_main, half))
+        run("INSERT INTO stock (owner_id, product_id, warehouse_id, quantity) VALUES (?,?,?,?)",
+            (user_id, pid, wh_over, init_qty - half))
+        run("""INSERT INTO move_history
+               (owner_id, timestamp, product_id, warehouse_id, change_qty, move_type, reference)
+               VALUES (?,?,?,?,?,?,?)""",
+            (user_id, ts, pid, wh_main, half, "Initial Stock", "Demo seed"))
+
+    r_ts = (now - timedelta(days=6)).strftime("%Y-%m-%d %H:%M:%S")
+    run("""INSERT INTO receipts (owner_id, supplier, warehouse_id, status, created_at)
+           VALUES (?,?,?,?,?)""", (user_id, "Tata Steel Ltd.", wh_main, "Done", r_ts))
+    rid = int(run("SELECT id FROM receipts WHERE owner_id=? ORDER BY id DESC LIMIT 1",
+                  (user_id,), fetch=True).iloc[0]["id"])
+    pid_rods = int(run("SELECT id FROM products WHERE owner_id=? AND sku='STL-ROD-12'",
+                       (user_id,), fetch=True).iloc[0]["id"])
+    run("INSERT INTO receipt_items (owner_id, receipt_id, product_id, quantity) VALUES (?,?,?,?)",
+        (user_id, rid, pid_rods, 200))
+
+    d_ts = (now - timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S")
+    run("""INSERT INTO deliveries (owner_id, customer, warehouse_id, status, created_at)
+           VALUES (?,?,?,?,?)""", (user_id, "Sharma Constructions", wh_main, "Draft", d_ts))
+    did = int(run("SELECT id FROM deliveries WHERE owner_id=? ORDER BY id DESC LIMIT 1",
+                  (user_id,), fetch=True).iloc[0]["id"])
+    pid_pallets = int(run("SELECT id FROM products WHERE owner_id=? AND sku='WOD-PLT'",
+                          (user_id,), fetch=True).iloc[0]["id"])
+    run("INSERT INTO delivery_items (owner_id, delivery_id, product_id, quantity) VALUES (?,?,?,?)",
+        (user_id, did, pid_pallets, 15))
+
+    pid_alu = int(run("SELECT id FROM products WHERE owner_id=? AND sku='ALU-SHT'",
+                      (user_id,), fetch=True).iloc[0]["id"])
+    t_ts = (now - timedelta(hours=5)).strftime("%Y-%m-%d %H:%M:%S")
+    run("""INSERT INTO transfers
+           (owner_id, product_id, from_warehouse_id, to_warehouse_id, quantity, status, created_at)
+           VALUES (?,?,?,?,?,?,?)""",
+        (user_id, pid_alu, wh_main, wh_over, 40, "Draft", t_ts))
+
+    pid_chairs = int(run("SELECT id FROM products WHERE owner_id=? AND sku='OFF-CHR'",
+                         (user_id,), fetch=True).iloc[0]["id"])
+    a_ts = (now - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    run("""INSERT INTO adjustments
+           (owner_id, product_id, warehouse_id, counted_qty, diff, status, created_at)
+           VALUES (?,?,?,?,?,?,?)""",
+        (user_id, pid_chairs, wh_main, 10, -2, "Done", a_ts))
+
+
+def login_as_demo():
+    try:
+        uname = "demo"
+        pwd = "demo1234"
+        df = run("SELECT id FROM users WHERE username=?", (uname,), fetch=True)
+        if df.empty:
+            ok, msg = create_user(uname, pwd, "Demo Account", "demo@stocksense.app")
+            if not ok:
+                st.error(f"Could not create demo user: {msg}")
+                return
+            df = run("SELECT id FROM users WHERE username=?", (uname,), fetch=True)
+        if df.empty:
+            st.error("Demo user could not be found. Try again.")
+            return
+        uid = int(df.iloc[0]["id"])
+
+        for tbl in ["move_history", "adjustments", "transfers",
+                    "delivery_items", "deliveries", "receipt_items", "receipts",
+                    "stock", "products", "warehouses"]:
+            run(f"DELETE FROM {tbl} WHERE owner_id=?", (uid,))
+
+        seed_demo_data(uid)
+
+        st.session_state.logged_in = True
+        st.session_state.username = uname
+        st.session_state.is_demo = True
+        st.rerun()
+    except sqlite3.OperationalError as e:
+        st.error(f"Database error: {e}. Close other tabs and refresh.")
+    except Exception as e:
+        st.error(f"Demo login failed: {type(e).__name__}: {e}")
+
+
+def seed_user_defaults(user_id):
+    run("INSERT INTO warehouses (owner_id, name, location) VALUES (?,?,?)",
+        (user_id, "Main Warehouse", "HQ"))
+
+
+# ==================================================================================
+# CHARTS
+# ==================================================================================
+def chart_donut(df, val_col, name_col, center_label, center_value, height=340):
+    colors = [T["accent"], T["accent2"], "#fbbf24", "#fb7185", "#4ade80", "#a78bfa", "#60a5fa"]
+    fig = go.Figure(go.Pie(
+        labels=df[name_col], values=df[val_col], hole=0.74,
+        marker=dict(colors=colors[:len(df)], line=dict(color="rgba(0,0,0,0)", width=2)),
+        textinfo="none", sort=False, direction="clockwise",
+        hovertemplate="<b>%{label}</b><br>%{value:,} units • %{percent}<extra></extra>",
+    ))
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.02,
+                    font=dict(color=T["muted"], size=12, family="Inter"), bgcolor="rgba(0,0,0,0)"),
+        annotations=[
+            dict(text=f"<b>{center_value:,}</b>", x=0.5, y=0.53, showarrow=False,
+                 font=dict(color=T["text"], family="Space Grotesk", size=30)),
+            dict(text=center_label.upper(), x=0.5, y=0.42, showarrow=False,
+                 font=dict(color=T["muted"], size=10, family="Inter")),
+        ],
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=6, r=6, t=6, b=6), height=height,
+    )
+    return fig
+
+
+def chart_hbar(df, label_col, value_col, height=340):
+    df = df.sort_values(value_col, ascending=True).tail(8)
+    fig = go.Figure(go.Bar(
+        x=df[value_col], y=df[label_col], orientation="h",
+        marker=dict(color=df[value_col],
+                    colorscale=[[0, T["accent"]], [1, T["accent2"]]], line=dict(width=0)),
+        text=[f"{v:,}" for v in df[value_col]], textposition="outside",
+        textfont=dict(color=T["text"], family="Space Grotesk", size=12),
+        hovertemplate="<b>%{y}</b><br>%{x:,} units<extra></extra>",
+    ))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=6, r=40, t=10, b=10), height=height,
+        xaxis=dict(showgrid=True, gridcolor=T["border"], color=T["muted"],
+                   zeroline=False, tickfont=dict(family="Inter", size=11)),
+        yaxis=dict(showgrid=False, color=T["text"],
+                   tickfont=dict(family="Inter", size=12)),
+        showlegend=False, bargap=0.42,
+    )
+    return fig
 
 
 # ==================================================================================
@@ -1098,18 +1225,46 @@ def auth_screen():
               <div class="app-subtitle" style="margin-top:2px;">Inventory Management</div>
             </div>
           </div>
-          <h1>Every box,<br/>every move,<br/>
+          <h1 style="font-size:3.1rem; line-height:1.04;">Every box,<br/>every move,<br/>
           <span style="background:linear-gradient(90deg,{T['accent']},{T['accent2']});
           -webkit-background-clip:text;-webkit-text-fill-color:transparent;">perfectly tracked.</span></h1>
-          <p>Replace registers and spreadsheets with one clean dashboard —
-          receipts, deliveries, transfers, and live counts in a single pane.</p>
-          <div class="pill-row">
-            <div class="pill">{icon('warehouse',18,T['accent'])} Multi-warehouse</div>
-            <div class="pill">{icon('chart',18,T['accent'])} Live analytics</div>
-            <div class="pill">{icon('shield',18,T['accent'])} Secure login</div>
-            <div class="pill">{icon('bolt',18,T['accent'])} Real-time ledger</div>
+          <p style="max-width:400px;">Replace registers and spreadsheets with one clean
+          dashboard — receipts, deliveries, transfers, and live counts, in a single pane.</p>
+
+          <div style="width:40px; height:2px; background:linear-gradient(90deg,{T['accent']},{T['accent2']});
+                      border-radius:2px; margin-top:26px;"></div>
+
+          <div style="display:flex; gap:28px; margin-top:20px; align-items:center; flex-wrap:wrap;">
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:1.7rem;
+                          font-weight:700; color:var(--text); line-height:1;">5+</div>
+              <div style="font-size:0.7rem; color:var(--muted); letter-spacing:0.12em;
+                          text-transform:uppercase; margin-top:4px;">Warehouses</div>
+            </div>
+            <div style="width:1px; height:34px; background:var(--border);"></div>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:1.7rem;
+                          font-weight:700; color:var(--text); line-height:1;">&infin;</div>
+              <div style="font-size:0.7rem; color:var(--muted); letter-spacing:0.12em;
+                          text-transform:uppercase; margin-top:4px;">Products</div>
+            </div>
+            <div style="width:1px; height:34px; background:var(--border);"></div>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif; font-size:1.7rem;
+                          font-weight:700; color:var(--text); line-height:1;">4</div>
+              <div style="font-size:0.7rem; color:var(--muted); letter-spacing:0.12em;
+                          text-transform:uppercase; margin-top:4px;">Doc types</div>
+            </div>
           </div>
-          <div style="margin-top:26px;">{HERO_SVG}</div>
+
+          <div class="pill-row" style="margin-top:22px;">
+            <div class="pill">{icon('warehouse',16,T['accent'])} Multi-warehouse</div>
+            <div class="pill">{icon('chart',16,T['accent'])} Live analytics</div>
+            <div class="pill">{icon('shield',16,T['accent'])} Secure login</div>
+            <div class="pill">{icon('bolt',16,T['accent'])} Real-time ledger</div>
+          </div>
+
+          <div style="margin-top:22px;">{HERO_SVG}</div>
         </div>
         """)
 
@@ -1133,9 +1288,21 @@ def auth_screen():
                     if check_login(u, p):
                         st.session_state.logged_in = True
                         st.session_state.username = u
+                        st.session_state.is_demo = False
                         st.rerun()
                     else:
                         st.error("Invalid username or password.")
+
+            render_html("""
+            <div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px 0;">
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+              <div style="color:var(--muted);font-size:0.72rem;letter-spacing:0.14em;
+                          text-transform:uppercase;">or</div>
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+            </div>
+            """)
+            if st.button("⚡ Try Demo Account", use_container_width=True, key="demo_login_btn"):
+                login_as_demo()
 
         with tab_signup:
             with st.form("signup_form"):
@@ -1151,6 +1318,10 @@ def auth_screen():
                         st.error("Passwords do not match.")
                     else:
                         ok, msg = create_user(nu.strip(), npw, fn.strip(), e.strip())
+                        if ok:
+                            new_id = int(run("SELECT id FROM users WHERE username=?",
+                                             (nu.strip(),), fetch=True).iloc[0]["id"])
+                            seed_user_defaults(new_id)
                         (st.success if ok else st.error)(msg)
 
         with tab_forgot:
@@ -1187,6 +1358,36 @@ def auth_screen():
 
 
 # ==================================================================================
+# STOCK TABLE
+# ==================================================================================
+def styled_stock_table(view_df, key=None):
+    if view_df.empty:
+        st.info("No matching stock records.")
+        return
+    display_df = view_df.copy()
+    display_df["Category"] = display_df["category"].apply(
+        lambda c: f"{CATEGORY_ICONS.get(c,'🔹')} {c or ''}")
+    max_qty = max(int(display_df["quantity"].max()), 1)
+    cols = ["name", "sku", "Category", "warehouse", "quantity", "reorder_point"]
+    if "uom" in display_df.columns:
+        cols.insert(4, "uom")
+    if "Status" in display_df.columns:
+        cols.append("Status")
+    st.dataframe(
+        display_df[cols], use_container_width=True, hide_index=True, key=key,
+        column_config={
+            "name": st.column_config.TextColumn("Product"),
+            "sku": st.column_config.TextColumn("SKU"),
+            "uom": st.column_config.TextColumn("UOM"),
+            "warehouse": st.column_config.TextColumn("Warehouse"),
+            "quantity": st.column_config.ProgressColumn(
+                "Stock Level", min_value=0, max_value=max_qty, format="%d"),
+            "reorder_point": st.column_config.NumberColumn("Reorder At"),
+        },
+    )
+
+
+# ==================================================================================
 # DASHBOARD
 # ==================================================================================
 def page_dashboard():
@@ -1194,14 +1395,15 @@ def page_dashboard():
     products = get_products_df()
     warehouses = get_warehouses_df()
     stock_df = get_stock_df()
+    uid = current_user_id()
 
     total_products = len(products)
     low_stock_df = stock_df[stock_df["quantity"] < stock_df["reorder_point"]] if not stock_df.empty else pd.DataFrame()
     low_stock_count = low_stock_df["product_id"].nunique() if not low_stock_df.empty else 0
 
-    pending_receipts = run("SELECT COUNT(*) c FROM receipts WHERE status NOT IN ('Done','Cancelled')", fetch=True).iloc[0]["c"]
-    pending_deliveries = run("SELECT COUNT(*) c FROM deliveries WHERE status NOT IN ('Done','Cancelled')", fetch=True).iloc[0]["c"]
-    scheduled_transfers = run("SELECT COUNT(*) c FROM transfers WHERE status NOT IN ('Done','Cancelled')", fetch=True).iloc[0]["c"]
+    pending_receipts = run("SELECT COUNT(*) c FROM receipts WHERE owner_id=? AND status NOT IN ('Done','Cancelled')", (uid,), fetch=True).iloc[0]["c"]
+    pending_deliveries = run("SELECT COUNT(*) c FROM deliveries WHERE owner_id=? AND status NOT IN ('Done','Cancelled')", (uid,), fetch=True).iloc[0]["c"]
+    scheduled_transfers = run("SELECT COUNT(*) c FROM transfers WHERE owner_id=? AND status NOT IN ('Done','Cancelled')", (uid,), fetch=True).iloc[0]["c"]
 
     c1, c2, c3, c4, c5 = st.columns(5, gap="small")
     with c1:
@@ -1266,27 +1468,41 @@ def page_dashboard():
 
 
 def build_operations_view(doc_type, status_filter, wh_filter, cat_filter):
+    uid = current_user_id()
+    if uid is None:
+        return pd.DataFrame()
     rows = []
+
     if doc_type in ("All", "Receipts"):
-        df = run("""SELECT r.id, 'Receipt' as doc_type, r.supplier as party, w.name as warehouse,
-                    r.status, r.created_at FROM receipts r LEFT JOIN warehouses w ON w.id=r.warehouse_id""", fetch=True)
+        df = run("""SELECT r.id, 'Receipt' as doc_type, r.supplier as party,
+                    w.name as warehouse, r.status, r.created_at
+                    FROM receipts r
+                    LEFT JOIN warehouses w ON w.id=r.warehouse_id
+                    WHERE r.owner_id=?""", (uid,), fetch=True)
         if not df.empty:
             if cat_filter != "All":
                 keep = run("""SELECT DISTINCT receipt_id FROM receipt_items i
-                              JOIN products p ON p.id=i.product_id WHERE p.category=?""",
-                           (cat_filter,), fetch=True)
+                              JOIN products p ON p.id=i.product_id
+                              WHERE p.category=? AND i.owner_id=?""",
+                           (cat_filter, uid), fetch=True)
                 df = df[df["id"].isin(keep["receipt_id"])] if not keep.empty else df.iloc[0:0]
             rows.append(df)
+
     if doc_type in ("All", "Delivery"):
-        df = run("""SELECT d.id, 'Delivery' as doc_type, d.customer as party, w.name as warehouse,
-                    d.status, d.created_at FROM deliveries d LEFT JOIN warehouses w ON w.id=d.warehouse_id""", fetch=True)
+        df = run("""SELECT d.id, 'Delivery' as doc_type, d.customer as party,
+                    w.name as warehouse, d.status, d.created_at
+                    FROM deliveries d
+                    LEFT JOIN warehouses w ON w.id=d.warehouse_id
+                    WHERE d.owner_id=?""", (uid,), fetch=True)
         if not df.empty:
             if cat_filter != "All":
                 keep = run("""SELECT DISTINCT delivery_id FROM delivery_items i
-                              JOIN products p ON p.id=i.product_id WHERE p.category=?""",
-                           (cat_filter,), fetch=True)
+                              JOIN products p ON p.id=i.product_id
+                              WHERE p.category=? AND i.owner_id=?""",
+                           (cat_filter, uid), fetch=True)
                 df = df[df["id"].isin(keep["delivery_id"])] if not keep.empty else df.iloc[0:0]
             rows.append(df)
+
     if doc_type in ("All", "Internal"):
         df = run("""SELECT t.id, 'Internal Transfer' as doc_type,
                     (fw.name || ' → ' || tw.name) as party, fw.name as warehouse,
@@ -1294,21 +1510,25 @@ def build_operations_view(doc_type, status_filter, wh_filter, cat_filter):
                     FROM transfers t
                     LEFT JOIN warehouses fw ON fw.id=t.from_warehouse_id
                     LEFT JOIN warehouses tw ON tw.id=t.to_warehouse_id
-                    LEFT JOIN products p ON p.id=t.product_id""", fetch=True)
+                    LEFT JOIN products p ON p.id=t.product_id
+                    WHERE t.owner_id=?""", (uid,), fetch=True)
         if not df.empty:
             if cat_filter != "All":
                 df = df[df["category"] == cat_filter]
             rows.append(df.drop(columns=["category"], errors="ignore"))
+
     if doc_type in ("All", "Adjustments"):
         df = run("""SELECT a.id, 'Adjustment' as doc_type, 'Stock Count' as party,
                     w.name as warehouse, a.status, a.created_at, p.category
                     FROM adjustments a
                     LEFT JOIN warehouses w ON w.id=a.warehouse_id
-                    LEFT JOIN products p ON p.id=a.product_id""", fetch=True)
+                    LEFT JOIN products p ON p.id=a.product_id
+                    WHERE a.owner_id=?""", (uid,), fetch=True)
         if not df.empty:
             if cat_filter != "All":
                 df = df[df["category"] == cat_filter]
             rows.append(df.drop(columns=["category"], errors="ignore"))
+
     if not rows:
         return pd.DataFrame()
     combined = pd.concat(rows, ignore_index=True)
@@ -1328,6 +1548,7 @@ def page_products():
     if warehouses.empty:
         st.warning("Add at least one warehouse in Settings first.")
         return
+    uid = current_user_id()
 
     with st.expander("➕ Add New Product", expanded=False):
         with st.form("add_product_form", clear_on_submit=True):
@@ -1346,17 +1567,22 @@ def page_products():
             rq = c8.number_input("Reorder Quantity", min_value=0, step=1, value=20)
             if st.form_submit_button("Save Product", use_container_width=True, type="primary"):
                 if name.strip() and sku.strip():
-                    try:
-                        run("""INSERT INTO products (name, sku, category, uom, reorder_point, reorder_qty)
-                               VALUES (?,?,?,?,?,?)""",
-                            (name.strip(), sku.strip(), category, uom, rp, rq))
-                        nid = run("SELECT id FROM products WHERE sku=?", (sku.strip(),), fetch=True).iloc[0]["id"]
-                        if init_qty > 0:
-                            set_stock_qty(int(nid), wh_map[init_wh], int(init_qty))
-                            log_move(int(nid), wh_map[init_wh], int(init_qty), "Initial Stock", f"Product #{nid}")
-                        st.success(f"Product '{name}' added.")
-                    except sqlite3.IntegrityError:
+                    dup = run("SELECT 1 FROM products WHERE owner_id=? AND sku=?",
+                              (uid, sku.strip()), fetch=True)
+                    if not dup.empty:
                         st.error("A product with this SKU already exists.")
+                    else:
+                        run("""INSERT INTO products
+                               (owner_id, name, sku, category, uom, reorder_point, reorder_qty)
+                               VALUES (?,?,?,?,?,?,?)""",
+                            (uid, name.strip(), sku.strip(), category, uom, rp, rq))
+                        nid = int(run("SELECT id FROM products WHERE owner_id=? AND sku=?",
+                                      (uid, sku.strip()), fetch=True).iloc[0]["id"])
+                        if init_qty > 0:
+                            set_stock_qty(nid, wh_map[init_wh], int(init_qty))
+                            log_move(nid, wh_map[init_wh], int(init_qty),
+                                     "Initial Stock", f"Product #{nid}")
+                        st.success(f"Product '{name}' added.")
                 else:
                     st.warning("Name and SKU are required.")
 
@@ -1402,17 +1628,19 @@ def page_products():
                 ui = UOM_OPTIONS.index(prow["uom"]) if prow["uom"] in UOM_OPTIONS else 0
                 eu = st.selectbox("UOM", UOM_OPTIONS, index=ui, key="eu")
             with c2:
-                erp = st.number_input("Reorder Point", min_value=0, step=1, value=int(prow["reorder_point"]), key="erp")
-                erq = st.number_input("Reorder Quantity", min_value=0, step=1, value=int(prow["reorder_qty"]), key="erq")
+                erp = st.number_input("Reorder Point", min_value=0, step=1,
+                                      value=int(prow["reorder_point"]), key="erp")
+                erq = st.number_input("Reorder Quantity", min_value=0, step=1,
+                                      value=int(prow["reorder_qty"]), key="erq")
             b1, b2 = st.columns(2)
             if b1.button("💾 Update Product", use_container_width=True):
                 run("""UPDATE products SET name=?, category=?, uom=?, reorder_point=?, reorder_qty=?
-                       WHERE id=?""", (en, ec, eu, erp, erq, int(pid)))
+                       WHERE id=? AND owner_id=?""", (en, ec, eu, erp, erq, int(pid), uid))
                 st.success("Product updated.")
                 st.rerun()
             if b2.button("🗑️ Delete Product", use_container_width=True):
-                run("DELETE FROM products WHERE id=?", (int(pid),))
-                run("DELETE FROM stock WHERE product_id=?", (int(pid),))
+                run("DELETE FROM products WHERE id=? AND owner_id=?", (int(pid), uid))
+                run("DELETE FROM stock WHERE product_id=? AND owner_id=?", (int(pid), uid))
                 st.warning("Product deleted.")
                 st.rerun()
 
@@ -1427,19 +1655,24 @@ def page_receipts():
     if products.empty or warehouses.empty:
         st.info("Add products and warehouses first.")
         return
+    uid = current_user_id()
+
     with st.expander("➕ New Receipt", expanded=False):
         with st.form("new_receipt", clear_on_submit=True):
             supplier = st.text_input("Supplier")
             wh_map = warehouse_label_map(warehouses)
             wh = st.selectbox("Warehouse", list(wh_map.keys()))
             if st.form_submit_button("Create Draft", use_container_width=True, type="primary"):
-                run("INSERT INTO receipts (supplier, warehouse_id, status, created_at) VALUES (?,?,?,?)",
-                    (supplier, wh_map[wh], "Draft", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                run("""INSERT INTO receipts (owner_id, supplier, warehouse_id, status, created_at)
+                       VALUES (?,?,?,?,?)""",
+                    (uid, supplier, wh_map[wh], "Draft",
+                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 st.success("Draft receipt created.")
 
     st.write("")
     receipts = run("""SELECT r.*, w.name as warehouse_name FROM receipts r
-                       LEFT JOIN warehouses w ON w.id=r.warehouse_id ORDER BY r.id DESC""", fetch=True)
+                       LEFT JOIN warehouses w ON w.id=r.warehouse_id
+                       WHERE r.owner_id=? ORDER BY r.id DESC""", (uid,), fetch=True)
     if receipts.empty:
         st.info("No receipts yet.")
         return
@@ -1452,32 +1685,37 @@ def page_receipts():
             top[3].caption(r["created_at"])
             items = run("""SELECT ri.id, p.name, p.sku, ri.quantity, ri.product_id
                            FROM receipt_items ri JOIN products p ON p.id=ri.product_id
-                           WHERE ri.receipt_id=?""", (r["id"],), fetch=True)
+                           WHERE ri.receipt_id=? AND ri.owner_id=?""", (r["id"], uid), fetch=True)
             if not items.empty:
-                st.dataframe(items[["name", "sku", "quantity"]], use_container_width=True, hide_index=True)
+                st.dataframe(items[["name", "sku", "quantity"]],
+                             use_container_width=True, hide_index=True)
             if r["status"] == "Draft":
                 pmap = product_label_map(products)
                 ac1, ac2, ac3 = st.columns([3, 1, 1])
                 pc = ac1.selectbox("Product", list(pmap.keys()), key=f"rp_{r['id']}")
                 qc = ac2.number_input("Qty", min_value=1, step=1, value=1, key=f"rq_{r['id']}")
                 if ac3.button("Add Line", key=f"radd_{r['id']}", use_container_width=True):
-                    run("INSERT INTO receipt_items (receipt_id, product_id, quantity) VALUES (?,?,?)",
-                        (int(r["id"]), pmap[pc], int(qc)))
+                    run("""INSERT INTO receipt_items (owner_id, receipt_id, product_id, quantity)
+                           VALUES (?,?,?,?)""", (uid, int(r["id"]), pmap[pc], int(qc)))
                     st.rerun()
                 b1, b2 = st.columns(2)
-                if b1.button("✅ Validate", key=f"rval_{r['id']}", use_container_width=True, type="primary"):
+                if b1.button("✅ Validate", key=f"rval_{r['id']}",
+                             use_container_width=True, type="primary"):
                     if items.empty:
                         st.warning("Add at least one product line first.")
                     else:
                         for _, it in items.iterrows():
-                            adjust_stock(int(it["product_id"]), int(r["warehouse_id"]), int(it["quantity"]))
-                            log_move(int(it["product_id"]), int(r["warehouse_id"]), int(it["quantity"]),
-                                     "Receipt", f"Receipt #{r['id']}")
-                        run("UPDATE receipts SET status='Done' WHERE id=?", (int(r["id"]),))
+                            adjust_stock(int(it["product_id"]), int(r["warehouse_id"]),
+                                         int(it["quantity"]))
+                            log_move(int(it["product_id"]), int(r["warehouse_id"]),
+                                     int(it["quantity"]), "Receipt", f"Receipt #{r['id']}")
+                        run("UPDATE receipts SET status='Done' WHERE id=? AND owner_id=?",
+                            (int(r["id"]), uid))
                         st.success("Receipt validated — stock increased.")
                         st.rerun()
                 if b2.button("🚫 Cancel", key=f"rcx_{r['id']}", use_container_width=True):
-                    run("UPDATE receipts SET status='Cancelled' WHERE id=?", (int(r["id"]),))
+                    run("UPDATE receipts SET status='Cancelled' WHERE id=? AND owner_id=?",
+                        (int(r["id"]), uid))
                     st.rerun()
 
 
@@ -1491,19 +1729,24 @@ def page_deliveries():
     if products.empty or warehouses.empty:
         st.info("Add products and warehouses first.")
         return
+    uid = current_user_id()
+
     with st.expander("➕ New Delivery", expanded=False):
         with st.form("new_delivery", clear_on_submit=True):
             customer = st.text_input("Customer")
             wh_map = warehouse_label_map(warehouses)
             wh = st.selectbox("Warehouse", list(wh_map.keys()))
             if st.form_submit_button("Create Draft", use_container_width=True, type="primary"):
-                run("INSERT INTO deliveries (customer, warehouse_id, status, created_at) VALUES (?,?,?,?)",
-                    (customer, wh_map[wh], "Draft", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                run("""INSERT INTO deliveries (owner_id, customer, warehouse_id, status, created_at)
+                       VALUES (?,?,?,?,?)""",
+                    (uid, customer, wh_map[wh], "Draft",
+                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 st.success("Draft delivery created.")
 
     st.write("")
     deliveries = run("""SELECT d.*, w.name as warehouse_name FROM deliveries d
-                         LEFT JOIN warehouses w ON w.id=d.warehouse_id ORDER BY d.id DESC""", fetch=True)
+                         LEFT JOIN warehouses w ON w.id=d.warehouse_id
+                         WHERE d.owner_id=? ORDER BY d.id DESC""", (uid,), fetch=True)
     if deliveries.empty:
         st.info("No delivery orders yet.")
         return
@@ -1516,37 +1759,43 @@ def page_deliveries():
             top[3].caption(d["created_at"])
             items = run("""SELECT di.id, p.name, p.sku, di.quantity, di.product_id
                            FROM delivery_items di JOIN products p ON p.id=di.product_id
-                           WHERE di.delivery_id=?""", (d["id"],), fetch=True)
+                           WHERE di.delivery_id=? AND di.owner_id=?""", (d["id"], uid), fetch=True)
             if not items.empty:
-                st.dataframe(items[["name", "sku", "quantity"]], use_container_width=True, hide_index=True)
+                st.dataframe(items[["name", "sku", "quantity"]],
+                             use_container_width=True, hide_index=True)
             if d["status"] == "Draft":
                 pmap = product_label_map(products)
                 ac1, ac2, ac3 = st.columns([3, 1, 1])
                 pc = ac1.selectbox("Product", list(pmap.keys()), key=f"dp_{d['id']}")
                 qc = ac2.number_input("Qty", min_value=1, step=1, value=1, key=f"dq_{d['id']}")
                 if ac3.button("Add Line", key=f"dadd_{d['id']}", use_container_width=True):
-                    run("INSERT INTO delivery_items (delivery_id, product_id, quantity) VALUES (?,?,?)",
-                        (int(d["id"]), pmap[pc], int(qc)))
+                    run("""INSERT INTO delivery_items (owner_id, delivery_id, product_id, quantity)
+                           VALUES (?,?,?,?)""", (uid, int(d["id"]), pmap[pc], int(qc)))
                     st.rerun()
                 b1, b2 = st.columns(2)
-                if b1.button("✅ Validate & Ship", key=f"dval_{d['id']}", use_container_width=True, type="primary"):
+                if b1.button("✅ Validate & Ship", key=f"dval_{d['id']}",
+                             use_container_width=True, type="primary"):
                     if items.empty:
                         st.warning("Add at least one line first.")
                     else:
                         shortage = [it for _, it in items.iterrows()
-                                    if get_stock_qty(int(it["product_id"]), int(d["warehouse_id"])) < it["quantity"]]
+                                    if get_stock_qty(int(it["product_id"]),
+                                                     int(d["warehouse_id"])) < it["quantity"]]
                         if shortage:
                             st.error("Not enough stock for one or more items.")
                         else:
                             for _, it in items.iterrows():
-                                adjust_stock(int(it["product_id"]), int(d["warehouse_id"]), -int(it["quantity"]))
-                                log_move(int(it["product_id"]), int(d["warehouse_id"]), -int(it["quantity"]),
-                                         "Delivery", f"Delivery #{d['id']}")
-                            run("UPDATE deliveries SET status='Done' WHERE id=?", (int(d["id"]),))
+                                adjust_stock(int(it["product_id"]), int(d["warehouse_id"]),
+                                             -int(it["quantity"]))
+                                log_move(int(it["product_id"]), int(d["warehouse_id"]),
+                                         -int(it["quantity"]), "Delivery", f"Delivery #{d['id']}")
+                            run("UPDATE deliveries SET status='Done' WHERE id=? AND owner_id=?",
+                                (int(d["id"]), uid))
                             st.success("Delivery validated.")
                             st.rerun()
                 if b2.button("🚫 Cancel", key=f"dcx_{d['id']}", use_container_width=True):
-                    run("UPDATE deliveries SET status='Cancelled' WHERE id=?", (int(d["id"]),))
+                    run("UPDATE deliveries SET status='Cancelled' WHERE id=? AND owner_id=?",
+                        (int(d["id"]), uid))
                     st.rerun()
 
 
@@ -1560,6 +1809,8 @@ def page_transfers():
     if products.empty or len(warehouses) < 2:
         st.info("Need at least 2 warehouses and 1 product.")
         return
+    uid = current_user_id()
+
     with st.form("transfer_form", clear_on_submit=True):
         pmap = product_label_map(products)
         wh_map = warehouse_label_map(warehouses)
@@ -1583,18 +1834,20 @@ def page_transfers():
                     else:
                         adjust_stock(pid, wh_map[fw], -int(q))
                         adjust_stock(pid, wh_map[tw], int(q))
-                        run("""INSERT INTO transfers (product_id, from_warehouse_id, to_warehouse_id,
-                               quantity, status, created_at) VALUES (?,?,?,?,?,?)""",
-                            (pid, wh_map[fw], wh_map[tw], int(q), "Done",
+                        run("""INSERT INTO transfers
+                               (owner_id, product_id, from_warehouse_id, to_warehouse_id,
+                                quantity, status, created_at) VALUES (?,?,?,?,?,?,?)""",
+                            (uid, pid, wh_map[fw], wh_map[tw], int(q), "Done",
                              datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                         log_move(pid, wh_map[fw], -int(q), "Internal Transfer", f"To {tw}")
                         log_move(pid, wh_map[tw], int(q), "Internal Transfer", f"From {fw}")
                         st.success(f"Moved {q} from {fw} to {tw}.")
                         st.rerun()
                 else:
-                    run("""INSERT INTO transfers (product_id, from_warehouse_id, to_warehouse_id,
-                           quantity, status, created_at) VALUES (?,?,?,?,?,?)""",
-                        (pid, wh_map[fw], wh_map[tw], int(q), "Draft",
+                    run("""INSERT INTO transfers
+                           (owner_id, product_id, from_warehouse_id, to_warehouse_id,
+                            quantity, status, created_at) VALUES (?,?,?,?,?,?,?)""",
+                        (uid, pid, wh_map[fw], wh_map[tw], int(q), "Draft",
                          datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                     st.success("Scheduled as Draft.")
                     st.rerun()
@@ -1607,7 +1860,8 @@ def page_transfers():
                      JOIN products p ON p.id=t.product_id
                      JOIN warehouses fw ON fw.id=t.from_warehouse_id
                      JOIN warehouses tw ON tw.id=t.to_warehouse_id
-                     WHERE t.status IN ('Draft','Waiting','Ready') ORDER BY t.id DESC""", fetch=True)
+                     WHERE t.owner_id=? AND t.status IN ('Draft','Waiting','Ready')
+                     ORDER BY t.id DESC""", (uid,), fetch=True)
     if not pending.empty:
         st.markdown("##### Scheduled Transfers")
         for _, t in pending.iterrows():
@@ -1623,16 +1877,20 @@ def page_transfers():
                     if avail < t["quantity"]:
                         st.error(f"Not enough stock ({avail}).")
                     else:
-                        adjust_stock(int(t["product_id"]), int(t["from_warehouse_id"]), -int(t["quantity"]))
-                        adjust_stock(int(t["product_id"]), int(t["to_warehouse_id"]), int(t["quantity"]))
-                        run("UPDATE transfers SET status='Done' WHERE id=?", (int(t["id"]),))
-                        log_move(int(t["product_id"]), int(t["from_warehouse_id"]), -int(t["quantity"]),
-                                 "Internal Transfer", f"Transfer #{t['id']}")
-                        log_move(int(t["product_id"]), int(t["to_warehouse_id"]), int(t["quantity"]),
-                                 "Internal Transfer", f"Transfer #{t['id']}")
+                        adjust_stock(int(t["product_id"]), int(t["from_warehouse_id"]),
+                                     -int(t["quantity"]))
+                        adjust_stock(int(t["product_id"]), int(t["to_warehouse_id"]),
+                                     int(t["quantity"]))
+                        run("UPDATE transfers SET status='Done' WHERE id=? AND owner_id=?",
+                            (int(t["id"]), uid))
+                        log_move(int(t["product_id"]), int(t["from_warehouse_id"]),
+                                 -int(t["quantity"]), "Internal Transfer", f"Transfer #{t['id']}")
+                        log_move(int(t["product_id"]), int(t["to_warehouse_id"]),
+                                 int(t["quantity"]), "Internal Transfer", f"Transfer #{t['id']}")
                         st.rerun()
                 if b[1].button("🚫", key=f"cx_{t['id']}", help="Cancel"):
-                    run("UPDATE transfers SET status='Cancelled' WHERE id=?", (int(t["id"]),))
+                    run("UPDATE transfers SET status='Cancelled' WHERE id=? AND owner_id=?",
+                        (int(t["id"]), uid))
                     st.rerun()
         st.write("")
 
@@ -1641,7 +1899,8 @@ def page_transfers():
                   JOIN products p ON p.id=t.product_id
                   JOIN warehouses fw ON fw.id=t.from_warehouse_id
                   JOIN warehouses tw ON tw.id=t.to_warehouse_id
-                  WHERE t.status IN ('Done','Cancelled') ORDER BY t.id DESC""", fetch=True)
+                  WHERE t.owner_id=? AND t.status IN ('Done','Cancelled')
+                  ORDER BY t.id DESC""", (uid,), fetch=True)
     st.markdown("##### History")
     if hist.empty:
         st.info("No completed transfers yet.")
@@ -1660,6 +1919,8 @@ def page_adjustments():
     if products.empty or warehouses.empty:
         st.info("Add products and warehouses first.")
         return
+    uid = current_user_id()
+
     with st.form("adj_form", clear_on_submit=True):
         pmap = product_label_map(products)
         wh_map = warehouse_label_map(warehouses)
@@ -1672,9 +1933,11 @@ def page_adjustments():
         if st.form_submit_button("Apply Adjustment", use_container_width=True, type="primary"):
             diff = int(counted) - cur
             set_stock_qty(pid, wid, int(counted))
-            run("""INSERT INTO adjustments (product_id, warehouse_id, counted_qty, diff, status, created_at)
-                   VALUES (?,?,?,?,?,?)""",
-                (pid, wid, int(counted), diff, "Done", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            run("""INSERT INTO adjustments
+                   (owner_id, product_id, warehouse_id, counted_qty, diff, status, created_at)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (uid, pid, wid, int(counted), diff, "Done",
+                 datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             log_move(pid, wid, diff, "Adjustment", "Physical count")
             st.success(f"Adjusted by {diff:+d}. New: {counted}.")
             st.rerun()
@@ -1684,7 +1947,8 @@ def page_adjustments():
     hist = run("""SELECT a.id, p.name, p.sku, w.name as warehouse, a.counted_qty, a.diff,
                   a.status, a.created_at FROM adjustments a
                   JOIN products p ON p.id=a.product_id
-                  JOIN warehouses w ON w.id=a.warehouse_id ORDER BY a.id DESC""", fetch=True)
+                  JOIN warehouses w ON w.id=a.warehouse_id
+                  WHERE a.owner_id=? ORDER BY a.id DESC""", (uid,), fetch=True)
     if hist.empty:
         st.info("No adjustments recorded yet.")
     else:
@@ -1699,6 +1963,7 @@ def page_move_history():
     st.subheader("📜 Move History")
     products = get_products_df()
     warehouses = get_warehouses_df()
+    uid = current_user_id()
     c1, c2, c3 = st.columns(3)
     prod_opts = ["All"] + list(products["name"]) if not products.empty else ["All"]
     pf = c1.selectbox("Product", prod_opts)
@@ -1709,7 +1974,8 @@ def page_move_history():
     ledger = run("""SELECT m.timestamp, p.name as product, w.name as warehouse,
                     m.change_qty, m.move_type, m.reference FROM move_history m
                     JOIN products p ON p.id=m.product_id
-                    JOIN warehouses w ON w.id=m.warehouse_id ORDER BY m.id DESC""", fetch=True)
+                    JOIN warehouses w ON w.id=m.warehouse_id
+                    WHERE m.owner_id=? ORDER BY m.id DESC""", (uid,), fetch=True)
     if ledger.empty:
         st.info("No stock movements recorded yet.")
         return
@@ -1728,6 +1994,7 @@ def page_move_history():
 # ==================================================================================
 def page_settings():
     st.subheader("⚙️ Settings")
+    uid = current_user_id()
     tab_wh, tab_app = st.tabs(["🏢 Warehouses", "🎨 Appearance"])
 
     with tab_wh:
@@ -1739,12 +2006,15 @@ def page_settings():
                 if not n.strip():
                     st.warning("Name is required.")
                 else:
-                    try:
-                        run("INSERT INTO warehouses (name, location) VALUES (?,?)", (n.strip(), l.strip()))
+                    dup = run("SELECT 1 FROM warehouses WHERE owner_id=? AND name=?",
+                              (uid, n.strip()), fetch=True)
+                    if not dup.empty:
+                        st.error("Warehouse name already exists.")
+                    else:
+                        run("""INSERT INTO warehouses (owner_id, name, location)
+                               VALUES (?,?,?)""", (uid, n.strip(), l.strip()))
                         st.success(f"'{n}' added.")
                         st.rerun()
-                    except sqlite3.IntegrityError:
-                        st.error("Warehouse name already exists.")
         st.write("")
         warehouses = get_warehouses_df()
         if warehouses.empty:
@@ -1757,12 +2027,13 @@ def page_settings():
                 wc = st.selectbox("Select warehouse", list(wmap.keys()))
                 if st.button("Delete Warehouse", use_container_width=True):
                     wid = wmap[wc]
-                    in_use = run("SELECT COUNT(*) c FROM stock WHERE warehouse_id=? AND quantity>0",
-                                 (wid,), fetch=True).iloc[0]["c"]
+                    in_use = run("""SELECT COUNT(*) c FROM stock
+                                    WHERE owner_id=? AND warehouse_id=? AND quantity>0""",
+                                 (uid, wid), fetch=True).iloc[0]["c"]
                     if in_use > 0:
                         st.error("Warehouse still has stock — clear it first.")
                     else:
-                        run("DELETE FROM warehouses WHERE id=?", (wid,))
+                        run("DELETE FROM warehouses WHERE id=? AND owner_id=?", (wid, uid))
                         st.warning("Deleted.")
                         st.rerun()
 
@@ -1803,13 +2074,13 @@ def page_settings():
 # ==================================================================================
 def page_profile():
     st.subheader("👤 My Profile")
-    user = run("SELECT * FROM users WHERE username=?", (st.session_state.username,), fetch=True).iloc[0]
+    uid = current_user_id()
+    user = run("SELECT * FROM users WHERE id=?", (uid,), fetch=True).iloc[0]
     with st.form("profile_form"):
         fn = st.text_input("Full Name", value=user["full_name"] or "")
         em = st.text_input("Email", value=user["email"] or "")
         if st.form_submit_button("Save Changes", use_container_width=True, type="primary"):
-            run("UPDATE users SET full_name=?, email=? WHERE username=?",
-                (fn, em, st.session_state.username))
+            run("UPDATE users SET full_name=?, email=? WHERE id=?", (fn, em, uid))
             st.success("Profile updated.")
     st.write("")
     st.markdown("##### 🔑 Change Password")
@@ -1834,8 +2105,6 @@ def page_profile():
 # ==================================================================================
 def main():
     init_db()
-    seed_defaults()
-    migrate_schema()
 
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
@@ -1844,7 +2113,8 @@ def main():
         auth_screen()
         return
 
-    user_row = run("SELECT * FROM users WHERE username=?", (st.session_state.username,), fetch=True)
+    uid = current_user_id()
+    user_row = run("SELECT * FROM users WHERE id=?", (uid,), fetch=True)
     dn = st.session_state.username
     if not user_row.empty and user_row.iloc[0]["full_name"]:
         dn = user_row.iloc[0]["full_name"]
@@ -1866,6 +2136,18 @@ def main():
           </div>
         </div>
         """)
+
+        if st.session_state.get("is_demo"):
+            render_html("""
+            <div style="margin-top:8px; padding:8px 12px; border-radius:12px;
+                        background: linear-gradient(135deg, rgba(251,191,36,0.14), rgba(251,113,133,0.10));
+                        border:1px solid rgba(251,191,36,0.35);
+                        font-size:0.74rem; color:#fbbf24; font-weight:600;
+                        display:flex; align-items:center; gap:8px;">
+                <span style="width:6px;height:6px;border-radius:50%;background:#fbbf24;"></span>
+                Demo Mode — sample data, resets on exit
+            </div>
+            """)
 
         page_names = ["Dashboard", "Products", "Receipts", "Delivery Orders",
                       "Internal Transfers", "Stock Adjustments", "Move History",
@@ -1895,6 +2177,7 @@ def main():
         if st.button("🚪 Logout", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.username = None
+            st.session_state.is_demo = False
             st.rerun()
 
     render_html(f"""
