@@ -13,3 +13,6 @@ A modern inventory management system built with Streamlit.
 ## Run locally
 pip install -r requirements.txt
 streamlit run app.py
+
+## Website
+[(https://stocksensey.streamlit.app/)](https://stocksensey.streamlit.app/)
