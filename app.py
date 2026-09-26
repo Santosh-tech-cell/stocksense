@@ -30,7 +30,8 @@ try:
 except ImportError:
     HAS_OPTION_MENU = False
 
-DB_NAME = "inventory.db"
+import os
+DB_NAME = os.environ.get("DB_PATH", "inventory.db")
 CATEGORIES = ["Raw Materials", "Finished Goods", "Office Supplies", "Packaging", "Other"]
 UOM_OPTIONS = ["pcs", "kg", "g", "litre", "ml", "box", "meter", "pack"]
 STATUS_OPTIONS = ["Draft", "Waiting", "Ready", "Done", "Cancelled"]
